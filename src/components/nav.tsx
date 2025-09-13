@@ -13,6 +13,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useState, useEffect } from "react";
+import {
+  SignInButton,
+  SignUpButton,
+  SignedIn,
+  SignedOut,
+  UserButton,
+} from "@clerk/nextjs";
+import Link from "next/link";
 
 // Navigation links array to be used in both desktop and mobile menus
 const navigationLinks = [
@@ -22,7 +30,11 @@ const navigationLinks = [
   // { href: "#", label: "Join" },
 ];
 
-export default function Nav() {
+interface NavProps {
+  mode?: "home" | "creation" | "dashboard";
+}
+
+export default function Nav({ mode = "home" }: NavProps) {
   const [activeSection, setActiveSection] = useState("home");
 
   useEffect(() => {
@@ -50,8 +62,42 @@ export default function Nav() {
     setActiveSection(sectionId);
   };
 
+  // Render simplified nav for creation and dashboard modes
+  if (mode === "creation" || mode === "dashboard") {
+    return (
+      <header className="px-4 md:px-6 fixed w-screen z-50">
+        <div className="flex h-16 justify-between items-center">
+          {/* Logo */}
+          <a href="#" className="text-primary hover:text-primary/90">
+            <img src="/logo.png" alt="Localette Logo" className="h-8 w-auto" />
+          </a>
+          {/* User icon */}
+          <div className="flex items-center">
+            <SignedIn>
+              <UserButton
+                appearance={{
+                  elements: {
+                    avatarBox: "h-8 w-8",
+                  },
+                }}
+              />
+            </SignedIn>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button variant="ghost" size="sm" className="text-sm">
+                  Sign In
+                </Button>
+              </SignInButton>
+            </SignedOut>
+          </div>
+        </div>
+      </header>
+    );
+  }
+
+  // Default home mode with full navigation
   return (
-    <header className=" px-4 md:px-6 fixed w-screen z-50">
+    <header className="px-4 md:px-6 fixed w-screen z-50">
       <div className="flex h-16 justify-between gap-4">
         {/* Left side */}
         <div className="flex gap-2">
@@ -137,12 +183,30 @@ export default function Nav() {
         </div>
         {/* Right side */}
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm" className="text-sm">
-            <a href="#">Sign In</a>
-          </Button>
-          <Button asChild size="sm" className="text-sm">
-            <a href="#">Get Started</a>
-          </Button>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <Button variant="ghost" size="sm" className="text-sm">
+                Sign In
+              </Button>
+            </SignInButton>
+            <SignUpButton mode="modal">
+              <Button size="sm" className="text-sm">
+                Get Started
+              </Button>
+            </SignUpButton>
+          </SignedOut>
+          <SignedIn>
+            <Button size="sm" className="text-sm">
+              <Link href={"/creation"}>Get Started</Link>
+            </Button>
+            <UserButton
+              appearance={{
+                elements: {
+                  avatarBox: "h-8 w-8",
+                },
+              }}
+            />
+          </SignedIn>
         </div>
       </div>
     </header>
