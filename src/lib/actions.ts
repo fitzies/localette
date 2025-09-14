@@ -149,3 +149,33 @@ export const deleteProduct = async (productId: string) => {
     where: { id: productId },
   });
 };
+
+export const getOrders = async (businessId: string) => {
+  const orders = await prisma.order.findMany({
+    where: { businessId },
+    include: {
+      items: {
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+              imageUrl: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Convert Decimal objects to numbers for client components
+  return orders.map((order) => ({
+    ...order,
+    total: Number(order.total),
+    items: order.items.map((item) => ({
+      ...item,
+      price: Number(item.price),
+    })),
+  }));
+};
