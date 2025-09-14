@@ -8,6 +8,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useId } from "react";
+import { validateBusinessType } from "@/lib/utils";
 
 const GettingStarted = ({
   businessType,
@@ -16,6 +18,9 @@ const GettingStarted = ({
   businessType: string;
   onFormDataChange: (field: string, value: string) => void;
 }) => {
+  const businessTypeId = useId();
+  const businessTypeValidation = validateBusinessType(businessType);
+
   const businessOptions = [
     "Food and dining",
     "Grocery and supermarket",
@@ -33,12 +38,23 @@ const GettingStarted = ({
 
   return (
     <div className="*:not-first:mt-2">
-      <Label>What type of business do you operate?</Label>
+      <Label htmlFor={businessTypeId}>
+        What type of business do you operate?
+      </Label>
       <Select
         value={businessType}
         onValueChange={(value) => onFormDataChange("businessType", value)}
       >
-        <SelectTrigger className="w-2/3">
+        <SelectTrigger
+          className={`w-2/3 ${
+            !businessTypeValidation.isValid && businessType
+              ? "border-red-500"
+              : ""
+          }`}
+          aria-invalid={
+            !businessTypeValidation.isValid && businessType ? "true" : "false"
+          }
+        >
           <SelectValue placeholder="Select your business type" />
         </SelectTrigger>
         <SelectContent>
@@ -52,6 +68,15 @@ const GettingStarted = ({
           ))}
         </SelectContent>
       </Select>
+      {!businessTypeValidation.isValid && businessType && (
+        <p
+          className="text-destructive mt-2 text-xs"
+          role="alert"
+          aria-live="polite"
+        >
+          {businessTypeValidation.message}
+        </p>
+      )}
     </div>
   );
 };

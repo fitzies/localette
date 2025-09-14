@@ -10,21 +10,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  firstName String?
-  lastName  String?
-  imageUrl  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // A user can own multiple businesses
-  businesses Business[]
-
-  @@map("users")
-}
-
 model Business {
   id          String  @id @default(cuid())
   name        String
@@ -33,9 +18,12 @@ model Business {
   address     String?
   phone       String?
   email       String?
-  website     String?
-  imageUrl    String?
   isActive    Boolean @default(true)
+
+  // Branding
+  logo       String?
+  banner     String?
+  brandColor String? @default("blue")
 
   // Delivery methods - at least one must be true
   pickupAvailable Boolean @default(true)
@@ -49,7 +37,6 @@ model Business {
 
   // Business must be owned by a user
   ownerId String
-  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
 
   // Business can have multiple products
   products Product[]
