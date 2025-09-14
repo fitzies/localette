@@ -62,3 +62,42 @@ export async function hasBusiness(): Promise<HasBusinessResponse> {
 
   return response.json();
 }
+
+export interface GetBusinessResponse {
+  success: boolean;
+  business: {
+    id: string;
+    businessName: string;
+    businessType?: string;
+    description?: string;
+    address?: string;
+    email?: string;
+    phone?: string;
+    pickupAvailable: boolean;
+    dineInAvailable: boolean;
+    brandColor?: string;
+    businessLogo?: string;
+    bannerImage?: string;
+    isActive: boolean;
+    paymentSetup: boolean;
+    ownerId: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+export async function getBusiness(): Promise<GetBusinessResponse> {
+  const response = await fetch("/api/business", {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to get business");
+  }
+
+  return response.json();
+}
