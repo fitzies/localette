@@ -188,3 +188,22 @@ export function validateBusinessType(businessType: string): {
 
   return { isValid: true };
 }
+
+export function generateSKU(productName: string): string {
+  if (!productName || productName.trim() === "") {
+    return `PROD-${Date.now().toString().slice(-6)}`;
+  }
+
+  // Clean the product name: remove special characters, convert to uppercase, limit to 6 chars
+  const cleanName = productName
+    .replace(/[^a-zA-Z0-9\s]/g, "") // Remove special characters
+    .replace(/\s+/g, "") // Remove spaces
+    .toUpperCase()
+    .slice(0, 6); // Limit to 6 characters
+
+  // Generate a 4-digit random number
+  const randomNum = Math.floor(1000 + Math.random() * 9000);
+
+  // Combine: clean name + random number
+  return `${cleanName}-${randomNum}`;
+}

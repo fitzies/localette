@@ -38,10 +38,24 @@ model Business {
   // Business must be owned by a user
   ownerId String
 
-  // Business can have multiple products
+  // Business can have multiple products and orders
   products Product[]
+  orders   Order[]
 
   @@map("businesses")
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Category can have multiple products
+  products Product[]
+
+  @@map("categories")
 }
 
 model Product {
@@ -51,6 +65,9 @@ model Product {
   price       Decimal  @db.Decimal(10, 2)
   imageUrl    String?
   isAvailable Boolean  @default(true)
+  isVisible   Boolean  @default(true) // New visibility field
+  sku         String?  @unique // New SKU field
+  weight      Decimal? @db.Decimal(8, 3) // New weight field in kg
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -58,5 +75,98 @@ model Product {
   businessId String
   business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
+  // Product belongs to a category (optional)
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  // Product can have multiple options (max 3)
+  options ProductOption[]
+
+  // Product can be in multiple order items
+  orderItems OrderItem[]
+
   @@map("products")
+}
+
+model ProductOption {
+  id       String     @id @default(cuid())
+  title    String // Option title (e.g., "Size", "Color", "Add-ons")
+  type     OptionType // Type of option (text, number, date, checkbox, selection)
+  position Int        @default(1) // To maintain order (1, 2, or 3)
+
+  // Option belongs to a product
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  // Option can have multiple choices (for checkbox/selection types)
+  choices OptionChoice[]
+
+  @@map("product_options")
+}
+
+model OptionChoice {
+  id    String   @id @default(cuid())
+  label String // Choice label (e.g., "Small", "Medium", "Large")
+  value String // Choice value
+  price Decimal? @db.Decimal(10, 2) // Additional price for this choice
+
+  // Choice belongs to an option
+  optionId String
+  option   ProductOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+
+  @@map("option_choices")
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  orderNumber  String      @unique
+  userId       String // Clerk user ID
+  status       OrderStatus @default(PENDING)
+  total        Decimal     @db.Decimal(10, 2)
+  deliveryType String // "pickup" or "dine-in"
+  notes        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  // Order belongs to a business
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  // Order can have multiple items
+  items OrderItem[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id       String  @id @default(cuid())
+  quantity Int
+  price    Decimal @db.Decimal(10, 2) // Price at time of order
+
+  // OrderItem belongs to an order
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // OrderItem references a product
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("order_items")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum OptionType {
+  TEXT // Basic text input
+  NUMBER // Quantity/number input
+  DATE // Date picker
+  CHECKBOX // Multiple choice checkboxes
+  SELECTION // Single/multiple selection dropdown
 }

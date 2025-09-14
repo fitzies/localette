@@ -4,6 +4,7 @@ import "./globals.css";
 import FooterSection from "@/components/footer";
 import { ClerkProvider } from "@clerk/nextjs";
 import { QueryProvider } from "@/components/query-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,6 +36,7 @@ export default function RootLayout({
             {children}
             {/* <FooterSection /> */}
           </QueryProvider>
+          <Toaster />
         </body>
       </html>
     </ClerkProvider>
