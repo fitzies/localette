@@ -348,24 +348,105 @@ export default function ProductTable({
     },
   ]);
 
-  const [data, setData] = useState<Product[]>(products);
+  const [data, setData] = useState<Product[]>(() => {
+    // Ensure initial data is properly serialized
+    return products.map((product) => ({
+      ...product,
+      price:
+        typeof product.price === "object"
+          ? Number(product.price)
+          : product.price,
+      weight:
+        product.weight && typeof product.weight === "object"
+          ? Number(product.weight)
+          : product.weight,
+      options:
+        product.options?.map((option) => ({
+          ...option,
+          choices:
+            option.choices?.map((choice) => ({
+              ...choice,
+              price:
+                choice.price && typeof choice.price === "object"
+                  ? Number(choice.price)
+                  : choice.price,
+            })) || [],
+        })) || [],
+    }));
+  });
 
   // Create columns with categories
   const columns = createColumns(categories);
 
   // Update local data when props change
   useEffect(() => {
-    setData(products);
+    // Ensure all Decimal objects are converted to numbers
+    const serializedProducts = products.map((product) => ({
+      ...product,
+      price:
+        typeof product.price === "object"
+          ? Number(product.price)
+          : product.price,
+      weight:
+        product.weight && typeof product.weight === "object"
+          ? Number(product.weight)
+          : product.weight,
+      options:
+        product.options?.map((option) => ({
+          ...option,
+          choices:
+            option.choices?.map((choice) => ({
+              ...choice,
+              price:
+                choice.price && typeof choice.price === "object"
+                  ? Number(choice.price)
+                  : choice.price,
+            })) || [],
+        })) || [],
+    }));
+    setData(serializedProducts);
   }, [products]);
 
-  const handleDeleteRows = () => {
-    const selectedRows = table.getSelectedRowModel().rows;
-    const updatedData = data.filter(
-      (item) => !selectedRows.some((row) => row.original.id === item.id)
-    );
-    setData(updatedData);
-    onProductUpdate?.(updatedData);
-    table.resetRowSelection();
+  const handleDeleteRows = async () => {
+    try {
+      const selectedRows = table.getSelectedRowModel().rows;
+      const selectedIds = selectedRows.map((row) => row.original.id);
+
+      // Delete each product from the database
+      await Promise.all(selectedIds.map((id) => deleteProduct(id)));
+
+      // Update local state - ensure proper serialization
+      const updatedData = data
+        .filter(
+          (item) => !selectedRows.some((row) => row.original.id === item.id)
+        )
+        .map((product) => ({
+          ...product,
+          price:
+            typeof product.price === "object"
+              ? Number(product.price)
+              : product.price,
+          weight:
+            product.weight && typeof product.weight === "object"
+              ? Number(product.weight)
+              : product.weight,
+        }));
+
+      setData(updatedData);
+      onProductUpdate?.(updatedData);
+      table.resetRowSelection();
+
+      toast.success("Products deleted successfully!", {
+        description: `${selectedIds.length} product${
+          selectedIds.length === 1 ? "" : "s"
+        } removed.`,
+      });
+    } catch (error) {
+      console.error("Error deleting products:", error);
+      toast.error("Failed to delete products", {
+        description: "Please try again.",
+      });
+    }
   };
 
   const table = useReactTable({
@@ -578,31 +659,27 @@ export default function ProductTable({
                   </span>
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
-                <div className="flex flex-col gap-2 max-sm:items-center sm:flex-row sm:gap-4">
-                  <div
-                    className="flex size-9 shrink-0 items-center justify-center rounded-full border"
-                    aria-hidden="true"
-                  >
-                    <CircleAlertIcon className="opacity-80" size={16} />
-                  </div>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>
-                      Are you absolutely sure?
-                    </AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete{" "}
-                      {table.getSelectedRowModel().rows.length} selected{" "}
-                      {table.getSelectedRowModel().rows.length === 1
-                        ? "row"
-                        : "rows"}
-                      .
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                </div>
+              <AlertDialogContent className="!fixed !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2">
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Products</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete{" "}
+                    <span className="font-semibold">
+                      {table.getSelectedRowModel().rows.length}
+                    </span>{" "}
+                    selected{" "}
+                    {table.getSelectedRowModel().rows.length === 1
+                      ? "product"
+                      : "products"}
+                    ? This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteRows}>
+                  <AlertDialogAction
+                    onClick={handleDeleteRows}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
                     Delete
                   </AlertDialogAction>
                 </AlertDialogFooter>

@@ -3,7 +3,10 @@
 import { prisma } from "./prisma";
 
 export const getBusiness = async (bussinessId: string) => {
-  return await prisma.business.findUnique({ where: { id: bussinessId } });
+  return await prisma.business.findUnique({
+    where: { id: bussinessId },
+    include: { orders: true, products: true },
+  });
 };
 
 export const getProducts = async (businessId: string) => {
