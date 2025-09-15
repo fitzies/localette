@@ -80,7 +80,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
           {
             title: "Categories",
             url: businessId
-              ? `/admin/${businessId}/products/categories`
+              ? `/admin/${businessId}/categories`
               : "/admin/categories",
           },
         ],

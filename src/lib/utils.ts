@@ -189,6 +189,56 @@ export function validateBusinessType(businessType: string): {
   return { isValid: true };
 }
 
+export function validateCategoryName(name: string): {
+  isValid: boolean;
+  message?: string;
+} {
+  if (!name) {
+    return { isValid: false, message: "Category name is required" };
+  }
+
+  if (name.length < 3) {
+    return {
+      isValid: false,
+      message: "Category name must be at least 3 characters long",
+    };
+  }
+
+  if (name.length > 50) {
+    return {
+      isValid: false,
+      message: "Category name must be less than 50 characters",
+    };
+  }
+
+  return { isValid: true };
+}
+
+export function validateCategoryDescription(description: string): {
+  isValid: boolean;
+  message?: string;
+} {
+  if (!description) {
+    return { isValid: true }; // Description is optional
+  }
+
+  if (description.length < 10) {
+    return {
+      isValid: false,
+      message: "Description must be at least 10 characters long",
+    };
+  }
+
+  if (description.length > 200) {
+    return {
+      isValid: false,
+      message: "Description must be less than 200 characters",
+    };
+  }
+
+  return { isValid: true };
+}
+
 export function generateSKU(productName: string): string {
   if (!productName || productName.trim() === "") {
     return `PROD-${Date.now().toString().slice(-6)}`;

@@ -219,6 +219,8 @@ export function AddProductDialog({
   onProductAdded,
   product,
 }: AddProductDialogProps) {
+  // Debug categories
+  console.log("AddProductDialog categories:", categories);
   const [open, setOpen] = useState(!!product); // Auto-open if product is provided (edit mode)
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -715,15 +717,18 @@ export function AddProductDialog({
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="z-[200]">
                         <SelectItem value="uncategorized">
                           No Category
                         </SelectItem>
-                        {categories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
+                        {categories.map((category) => {
+                          console.log("Rendering category:", category);
+                          return (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          );
+                        })}
                       </SelectContent>
                     </Select>
                     <FormDescription className="invisible">

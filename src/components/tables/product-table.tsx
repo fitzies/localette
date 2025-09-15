@@ -169,7 +169,7 @@ const availabilityFilterFn: FilterFn<Product> = (
   return filterValue.includes(status);
 };
 
-const columns: ColumnDef<Product>[] = [
+const createColumns = (categories?: Category[]): ColumnDef<Product>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -320,7 +320,7 @@ const columns: ColumnDef<Product>[] = [
   {
     id: "actions",
     header: () => <span className="sr-only">Actions</span>,
-    cell: ({ row }) => <RowActions row={row} />,
+    cell: ({ row }) => <RowActions row={row} categories={categories} />,
     size: 60,
     enableHiding: false,
   },
@@ -349,6 +349,9 @@ export default function ProductTable({
   ]);
 
   const [data, setData] = useState<Product[]>(products);
+
+  // Create columns with categories
+  const columns = createColumns(categories);
 
   // Update local data when props change
   useEffect(() => {
@@ -831,7 +834,13 @@ export default function ProductTable({
   );
 }
 
-function RowActions({ row }: { row: Row<Product> }) {
+function RowActions({
+  row,
+  categories,
+}: {
+  row: Row<Product>;
+  categories?: Category[];
+}) {
   const product = row.original;
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
@@ -946,6 +955,7 @@ function RowActions({ row }: { row: Row<Product> }) {
       {isEditDialogOpen && (
         <AddProductDialog
           businessId={product.businessId}
+          categories={categories}
           product={product}
           onProductAdded={() => {
             setIsEditDialogOpen(false);

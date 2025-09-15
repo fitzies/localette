@@ -11,7 +11,7 @@ export default async function Page({
 
   const [products, categories] = await Promise.all([
     getProducts(shop),
-    getCategories(),
+    getCategories(shop),
   ]);
 
   return (

@@ -34,8 +34,9 @@ export const getProducts = async (businessId: string) => {
   }));
 };
 
-export const getCategories = async () => {
+export const getCategories = async (businessId: string) => {
   return await prisma.category.findMany({
+    where: { businessId },
     orderBy: { name: "asc" },
   });
 };
@@ -112,13 +113,53 @@ export const createProduct = async (productData: {
 export const updateProduct = async (
   productId: string,
   updateData: {
+    name?: string;
+    description?: string | null;
+    price?: number;
+    imageUrl?: string | null;
     isAvailable?: boolean;
     isVisible?: boolean;
+    sku?: string | null;
+    weight?: number | null;
+    categoryId?: string | null;
+    options?: Array<{
+      id?: string;
+      title: string;
+      type: "TEXT" | "NUMBER" | "DATE" | "CHECKBOX" | "SELECTION";
+      position: number;
+      choices: Array<{
+        id?: string;
+        label: string;
+        value: string;
+        price?: number;
+      }>;
+    }>;
   }
 ) => {
+  const { options, ...productDataWithoutOptions } = updateData;
+
   const product = await prisma.product.update({
     where: { id: productId },
-    data: updateData,
+    data: {
+      ...productDataWithoutOptions,
+      options: options
+        ? {
+            deleteMany: {}, // Remove existing options
+            create: options.map((option) => ({
+              title: option.title,
+              type: option.type,
+              position: option.position,
+              choices: {
+                create: option.choices.map((choice) => ({
+                  label: choice.label,
+                  value: choice.value,
+                  price: choice.price || null,
+                })),
+              },
+            })),
+          }
+        : undefined,
+    },
     include: {
       category: true,
       options: {
@@ -147,6 +188,37 @@ export const updateProduct = async (
 export const deleteProduct = async (productId: string) => {
   return await prisma.product.delete({
     where: { id: productId },
+  });
+};
+
+export const createCategory = async (categoryData: {
+  name: string;
+  icon: string;
+  description?: string;
+  businessId: string;
+}) => {
+  return await prisma.category.create({
+    data: categoryData,
+  });
+};
+
+export const updateCategory = async (
+  categoryId: string,
+  categoryData: {
+    name: string;
+    icon: string;
+    description?: string;
+  }
+) => {
+  return await prisma.category.update({
+    where: { id: categoryId },
+    data: categoryData,
+  });
+};
+
+export const deleteCategory = async (categoryId: string) => {
+  return await prisma.category.delete({
+    where: { id: categoryId },
   });
 };
 

@@ -595,7 +595,7 @@ export default function OrdersTable({
 
           {/* Toggle columns visibility */}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            {/* <DropdownMenuTrigger asChild>
               <Button variant="outline">
                 <Columns3Icon
                   className="-ms-1 opacity-60"
@@ -604,7 +604,7 @@ export default function OrdersTable({
                 />
                 View
               </Button>
-            </DropdownMenuTrigger>
+            </DropdownMenuTrigger> */}
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
               {table

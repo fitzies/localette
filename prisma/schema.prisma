@@ -48,9 +48,12 @@ model Business {
 model Category {
   id          String   @id @default(cuid())
   name        String
+  icon        String
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  businessId String
 
   // Category can have multiple products
   products Product[]
