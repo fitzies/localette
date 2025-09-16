@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "@/lib/prisma";
 
 export async function PUT(
@@ -43,6 +44,22 @@ export async function PUT(
       );
     }
 
+    // Validate delivery methods
+    if (
+      (data.pickupAvailable === false && data.dineInAvailable === false) ||
+      (data.pickupAvailable === false &&
+        existingBusiness.dineInAvailable === false &&
+        data.dineInAvailable === undefined) ||
+      (data.dineInAvailable === false &&
+        existingBusiness.pickupAvailable === false &&
+        data.pickupAvailable === undefined)
+    ) {
+      return NextResponse.json(
+        { error: "At least one delivery method must be available" },
+        { status: 400 }
+      );
+    }
+
     // Update the business with the provided data
     const updatedBusiness = await prisma.business.update({
       where: { id: businessId },
@@ -51,6 +68,12 @@ export async function PUT(
         updatedAt: new Date(),
       },
     });
+
+    // Invalidate cache for business data
+    revalidateTag(`business-${businessId}`);
+    revalidatePath(`/admin/${businessId}/branding`);
+    revalidatePath(`/admin/${businessId}`);
+    revalidatePath(`/admin/${businessId}/settings`);
 
     return NextResponse.json({
       success: true,

@@ -13,6 +13,9 @@ import {
   LifeBuoy,
   Send,
   PaintRoller,
+  ChevronDownIcon,
+  Eye,
+  Edit,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
@@ -27,6 +30,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { NavOthers } from "./nav-others";
 import { NavUser } from "./nav-user";
 
@@ -35,24 +45,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [businessId, setBusinessId] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
-  React.useEffect(() => {
-    const fetchBusiness = async () => {
-      try {
-        const response = await getBusiness();
-        if (response.success && response.business) {
-          setBusinessName(response.business.businessName);
-          setBusinessId(response.business.id);
-        }
-      } catch (error) {
-        console.error("Failed to fetch business:", error);
-        // Keep default name if fetch fails
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  // React.useEffect(() => {
+  //   const fetchBusiness = async () => {
+  //     try {
+  //       const response = await getBusiness();
+  //       if (response.success && response.business) {
+  //         setBusinessName(response.business.businessName);
+  //         setBusinessId(response.business.id);
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to fetch business:", error);
+  //       // Keep default name if fetch fails
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
 
-    fetchBusiness();
-  }, []);
+  //   fetchBusiness();
+  // }, []); // Empty dependency array ensures this only runs once
 
   // Create navigation data with business ID
   const data = {
@@ -112,25 +122,62 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton size="lg" asChild>
-              <a href="#">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Store className="size-4" />
-                </div>
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span
-                    className={`truncate font-medium ${
-                      isLoading
-                        ? "animate-pulse text-transparent bg-zinc-100 w-1/2 rounded-full"
-                        : ""
-                    }`}
-                  >
-                    {businessName}
-                  </span>
-                  <span className="truncate text-xs">Admin Panel</span>
-                </div>
-              </a>
-            </SidebarMenuButton>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton size={"lg"}>
+                  <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                    <Store className="size-4" />
+                  </div>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span
+                      className={`truncate font-medium ${
+                        isLoading
+                          ? "animate-pulse text-transparent bg-zinc-100 w-1/2 rounded-full"
+                          : ""
+                      }`}
+                    >
+                      {businessName}
+                    </span>
+                    <span className="truncate text-xs">Admin Panel</span>
+                  </div>
+                  {/* <ChevronDownIcon className="size-4 opacity-60" /> */}
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-48 p-1">
+                <DropdownMenuGroup>
+                  <DropdownMenuItem asChild className="px-2 py-1.5 text-sm">
+                    <a
+                      href={businessId ? `/${businessId}/view` : "/view"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Eye
+                        size={14}
+                        className="opacity-60"
+                        aria-hidden="true"
+                      />
+                      View Store
+                    </a>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="px-2 py-1.5 text-sm">
+                    <a
+                      href={
+                        businessId
+                          ? `/admin/${businessId}/branding`
+                          : "/admin/branding"
+                      }
+                    >
+                      <Edit
+                        size={14}
+                        className="opacity-60"
+                        aria-hidden="true"
+                      />
+                      Edit
+                    </a>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>

@@ -70,7 +70,7 @@ export default async function Page({
           <OrdersTable businessId={shop} orders={orders} />
         </CardContent>
       </Card>
-      {business.orders.length <= 0 ? (
+      {business.products.length <= 0 ? (
         <Card className="col-span-4">
           <CardHeader>
             <CardTitle>You have no products</CardTitle>

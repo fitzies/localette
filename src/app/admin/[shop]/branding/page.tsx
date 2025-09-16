@@ -1,7 +1,7 @@
 import { getBusiness } from "@/lib/actions";
 import { LogoBanner } from "@/components/branding/logo-banner";
 import { BrandIdentity } from "@/components/branding/brand-identity";
-import { ContactInfo } from "@/components/branding/contact-info";
+import { BusinessDetails } from "@/components/branding/business-details";
 import { SocialLinks } from "@/components/branding/social-links";
 import { TriangleAlert } from "lucide-react";
 import Alert from "@/components/alert";
@@ -37,18 +37,22 @@ export default async function Page({
   if (!business.description) missingInfo.push("description");
   if (!business.category) missingInfo.push("category");
   if (!business.brandKeywords) missingInfo.push("brand keywords");
-  if (!business.email) missingInfo.push("email");
-  if (!business.phone) missingInfo.push("phone");
+  if (!business.email && !business.phone)
+    missingInfo.push("contact information");
   if (!business.address1) missingInfo.push("address");
+  if (!business.pickupAvailable && !business.dineInAvailable)
+    missingInfo.push("delivery methods");
+  if (!business.availableDays || business.availableDays?.length === 0)
+    missingInfo.push("operating days");
   if (!business.instagram && !business.facebook)
     missingInfo.push("social media links");
 
   const alertText =
     missingInfo.length > 0
-      ? `Some information is missng, you need to setup your ${missingInfo.join(
+      ? `Some information is missing, you need to setup your ${missingInfo.join(
           ", "
         )}.`
-      : "All branding information is complete! 🎉";
+      : "All business information is complete! 🎉";
 
   return (
     <>
@@ -71,7 +75,7 @@ export default async function Page({
           brandKeywords={business.brandKeywords}
         />
 
-        <ContactInfo
+        <BusinessDetails
           businessId={business.id}
           email={business.email}
           phone={business.phone}
@@ -79,6 +83,10 @@ export default async function Page({
           address2={business.address2}
           unitNumber={business.unitNumber}
           postalCode={business.postalCode}
+          pickupAvailable={business.pickupAvailable}
+          dineInAvailable={business.dineInAvailable}
+          availableDays={business.availableDays || []}
+          timeSlots={business.timeSlots || null}
         />
 
         <SocialLinks

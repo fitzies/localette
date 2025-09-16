@@ -1,15 +1,17 @@
 "use server";
 
+import { cache } from "react";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "./prisma";
 
-export const getBusiness = async (bussinessId: string) => {
+export const getBusiness = cache(async (bussinessId: string) => {
   return await prisma.business.findUnique({
     where: { id: bussinessId },
     include: { orders: true, products: true },
   });
-};
+});
 
-export const getProducts = async (businessId: string) => {
+export const getProducts = cache(async (businessId: string) => {
   const products = await prisma.product.findMany({
     where: { businessId },
     include: {
@@ -35,14 +37,14 @@ export const getProducts = async (businessId: string) => {
       })),
     })),
   }));
-};
+});
 
-export const getCategories = async (businessId: string) => {
+export const getCategories = cache(async (businessId: string) => {
   return await prisma.category.findMany({
     where: { businessId },
     orderBy: { name: "asc" },
   });
-};
+});
 
 export const createProduct = async (productData: {
   name: string;
@@ -99,7 +101,7 @@ export const createProduct = async (productData: {
   });
 
   // Convert Decimal objects to numbers for client components
-  return {
+  const result = {
     ...product,
     price: Number(product.price),
     weight: product.weight ? Number(product.weight) : null,
@@ -111,6 +113,12 @@ export const createProduct = async (productData: {
       })),
     })),
   };
+
+  // Invalidate cache for products and business data
+  revalidateTag(`products-${productData.businessId}`);
+  revalidatePath(`/admin/${productData.businessId}/products`);
+
+  return result;
 };
 
 export const updateProduct = async (
@@ -174,7 +182,7 @@ export const updateProduct = async (
   });
 
   // Convert Decimal objects to numbers for client components
-  return {
+  const result = {
     ...product,
     price: Number(product.price),
     weight: product.weight ? Number(product.weight) : null,
@@ -186,12 +194,24 @@ export const updateProduct = async (
       })),
     })),
   };
+
+  // Invalidate cache for products and business data
+  revalidateTag(`products-${updateData.categoryId || "unknown"}`);
+  revalidatePath(`/admin/*/products`);
+
+  return result;
 };
 
 export const deleteProduct = async (productId: string) => {
-  return await prisma.product.delete({
+  const result = await prisma.product.delete({
     where: { id: productId },
   });
+
+  // Invalidate cache for products
+  revalidateTag(`products-${result.businessId}`);
+  revalidatePath(`/admin/${result.businessId}/products`);
+
+  return result;
 };
 
 export const createCategory = async (categoryData: {
@@ -200,9 +220,15 @@ export const createCategory = async (categoryData: {
   description?: string;
   businessId: string;
 }) => {
-  return await prisma.category.create({
+  const result = await prisma.category.create({
     data: categoryData,
   });
+
+  // Invalidate cache for categories
+  revalidateTag(`categories-${categoryData.businessId}`);
+  revalidatePath(`/admin/${categoryData.businessId}/categories`);
+
+  return result;
 };
 
 export const updateCategory = async (
@@ -213,19 +239,31 @@ export const updateCategory = async (
     description?: string;
   }
 ) => {
-  return await prisma.category.update({
+  const result = await prisma.category.update({
     where: { id: categoryId },
     data: categoryData,
   });
+
+  // Invalidate cache for categories
+  revalidateTag(`categories-${result.businessId}`);
+  revalidatePath(`/admin/${result.businessId}/categories`);
+
+  return result;
 };
 
 export const deleteCategory = async (categoryId: string) => {
-  return await prisma.category.delete({
+  const result = await prisma.category.delete({
     where: { id: categoryId },
   });
+
+  // Invalidate cache for categories
+  revalidateTag(`categories-${result.businessId}`);
+  revalidatePath(`/admin/${result.businessId}/categories`);
+
+  return result;
 };
 
-export const getOrders = async (businessId: string) => {
+export const getOrders = cache(async (businessId: string) => {
   const orders = await prisma.order.findMany({
     where: { businessId },
     include: {
@@ -253,9 +291,9 @@ export const getOrders = async (businessId: string) => {
       price: Number(item.price),
     })),
   }));
-};
+});
 
-export const getCustomers = async (businessId: string) => {
+export const getCustomers = cache(async (businessId: string) => {
   try {
     // Import clerkClient here to avoid issues with Next.js SSR
     const { clerkClient } = await import("@clerk/nextjs/server");
@@ -375,4 +413,4 @@ export const getCustomers = async (businessId: string) => {
     console.error("Error fetching customers:", error);
     return [];
   }
-};
+});

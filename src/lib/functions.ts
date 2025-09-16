@@ -31,6 +31,8 @@ export async function createBusiness(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(data),
+    // No caching for mutations - always fresh data
+    cache: "no-store",
   });
 
   if (!response.ok) {
@@ -53,6 +55,8 @@ export async function hasBusiness(): Promise<HasBusinessResponse> {
     headers: {
       "Content-Type": "application/json",
     },
+    // Cache for 5 minutes since business status doesn't change frequently
+    next: { revalidate: 300 },
   });
 
   if (!response.ok) {
@@ -92,6 +96,8 @@ export async function getBusiness(): Promise<GetBusinessResponse> {
     headers: {
       "Content-Type": "application/json",
     },
+    // Cache for 2 minutes since business data changes occasionally
+    next: { revalidate: 120 },
   });
 
   if (!response.ok) {
@@ -125,6 +131,12 @@ export interface UpdateBusinessData {
   // Social media fields
   instagram?: string;
   facebook?: string;
+
+  // Availability fields
+  pickupAvailable?: boolean;
+  dineInAvailable?: boolean;
+  availableDays?: string[];
+  timeSlots?: string;
 }
 
 export interface UpdateBusinessResponse {
@@ -143,6 +155,8 @@ export async function updateBusiness(
       "Content-Type": "application/json",
     },
     body: JSON.stringify(data),
+    // No caching for mutations - always fresh data
+    cache: "no-store",
   });
 
   if (!response.ok) {

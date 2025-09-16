@@ -40,6 +40,10 @@ model Business {
   pickupAvailable Boolean @default(true)
   dineInAvailable Boolean @default(false)
 
+  // Business availability
+  availableDays String[] // Array of day values (1-7, where 1=Sunday, 7=Saturday)
+  timeSlots     String? // JSON string storing time slots for each day
+
   // Payment setup
   paymentSetup Boolean @default(false)
 
