@@ -12,12 +12,12 @@ import {
   Store,
   LifeBuoy,
   Send,
+  PaintRoller,
 } from "lucide-react";
 
 import { NavMain } from "@/components/nav-main";
-// import { NavProjects } from "@/components/nav-projects";
-import { NavSecondary } from "@/components/nav-secondary";
 // import { NavUser } from "@/components/nav-user";
+
 import {
   Sidebar,
   SidebarContent,
@@ -27,6 +27,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { NavOthers } from "./nav-others";
+import { NavUser } from "./nav-user";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [businessName, setBusinessName] = React.useState("Localette");
@@ -90,6 +92,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         url: businessId ? `/admin/${businessId}/customers` : "/admin/customers",
         icon: Users,
       },
+    ],
+    others: [
+      {
+        title: "Branding",
+        url: businessId ? `/admin/${businessId}/branding` : "/admin/branding",
+        icon: PaintRoller,
+      },
       {
         title: "Settings",
         url: businessId ? `/admin/${businessId}/settings` : "/admin/settings",
@@ -127,9 +136,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={data.navMain} />
-        {/* <NavProjects projects={data.projects} /> */}
+        <NavOthers items={data.others} />
       </SidebarContent>
-      {/* <SidebarFooter><NavUser user={data.user} /></SidebarFooter> */}
+      <SidebarFooter>
+        <NavUser />
+      </SidebarFooter>
     </Sidebar>
   );
 }

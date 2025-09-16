@@ -101,3 +101,54 @@ export async function getBusiness(): Promise<GetBusinessResponse> {
 
   return response.json();
 }
+
+export interface UpdateBusinessData {
+  // Branding fields
+  logo?: string;
+  banner?: string;
+  brandColor?: string;
+  brandKeywords?: string;
+
+  // Identity fields
+  name?: string;
+  description?: string;
+  category?: string;
+
+  // Contact fields
+  email?: string;
+  phone?: string;
+  address1?: string;
+  address2?: string;
+  unitNumber?: string;
+  postalCode?: string;
+
+  // Social media fields
+  instagram?: string;
+  facebook?: string;
+}
+
+export interface UpdateBusinessResponse {
+  success: boolean;
+  message: string;
+  business?: any;
+}
+
+export async function updateBusiness(
+  businessId: string,
+  data: UpdateBusinessData
+): Promise<UpdateBusinessResponse> {
+  const response = await fetch(`/api/business/${businessId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to update business");
+  }
+
+  return response.json();
+}

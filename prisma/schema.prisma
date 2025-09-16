@@ -15,15 +15,26 @@ model Business {
   name        String
   description String?
   category    String?
-  address     String?
-  phone       String?
-  email       String?
-  isActive    Boolean @default(true)
+
+  // Address fields
+  address1   String?
+  address2   String?
+  unitNumber String?
+  postalCode String?
+
+  phone    String?
+  email    String?
+  isActive Boolean @default(true)
 
   // Branding
-  logo       String?
-  banner     String?
-  brandColor String? @default("blue")
+  logo          String?
+  banner        String?
+  brandColor    String? @default("blue")
+  brandKeywords String? // JSON string array of keywords
+
+  // Social Media
+  instagram String?
+  facebook  String?
 
   // Delivery methods - at least one must be true
   pickupAvailable Boolean @default(true)

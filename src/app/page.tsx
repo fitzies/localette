@@ -2,6 +2,7 @@ import Features from "@/components/features";
 import HomeContentSection from "@/components/home-content-section";
 import Nav from "@/components/nav";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { ArrowRight, Rocket, StarsIcon } from "lucide-react";
 import Link from "next/link";
 
@@ -16,14 +17,14 @@ export default async function Page() {
             <div className="mx-auto max-w-7xl px-6 md:px-12">
               <div className="text-center sm:mx-auto sm:w-10/12 lg:mr-auto lg:mt-0 lg:w-4/5">
                 <Link
-                  href="/"
+                  href="/pricing"
                   className="rounded-(--radius) mx-auto flex w-fit items-center gap-2 border p-1 pr-3"
                 >
                   <span className="bg-muted rounded-[calc(var(--radius)-0.25rem)] px-2 py-1 text-xs">
                     <StarsIcon className="text-zinc-600 size-4" />
                   </span>
                   <span className="text-sm">
-                    Join early for greater exposure
+                    Join before launch for free lifetime Pro access
                   </span>
                   <span className="bg-(--color-border) block h-4 w-px"></span>
 
@@ -44,14 +45,19 @@ export default async function Page() {
                   and applications, with your personal spark.
                 </p>
 
-                <div className="my-8">
-                  {/* <Button size="lg" asChild>
-                    <Link href="/creation">
-                      <Rocket className="relative size-4" />
-                      <span className="text-nowrap">Get Started</span>
-                    </Link>
-                  </Button> */}
-                </div>
+                <Card className="mt-12">
+                  <CardContent>
+                    <iframe
+                      width="100%"
+                      // height="315"
+                      src="https://www.youtube.com/embed/7iPbrEkLDVQ"
+                      title="YouTube video player"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                      allowFullScreen
+                      className="rounded-lg aspect-video"
+                    ></iframe>
+                  </CardContent>
+                </Card>
               </div>
               {/* <div className="w-2/3 mx-auto pt-16">
               <img

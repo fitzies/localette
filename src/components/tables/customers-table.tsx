@@ -24,31 +24,18 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronUpIcon,
-  CircleAlertIcon,
   CircleXIcon,
   Columns3Icon,
   EllipsisIcon,
   FilterIcon,
   ListFilterIcon,
-  PlusIcon,
-  TrashIcon,
+  MailIcon,
+  PhoneIcon,
+  UserIcon,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { AddProductDialog } from "@/components/add-product-dialog";
-import { updateProduct, deleteProduct } from "@/lib/actions";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -56,15 +43,9 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuPortal,
+  DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -95,81 +76,52 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-type Category = {
+type Customer = {
   id: string;
-  name: string;
-  description: string | null;
-};
-
-type Product = {
-  id: string;
-  name: string;
-  description: string | null;
-  price: number;
+  email: string;
+  firstName: string;
+  lastName: string;
   imageUrl: string | null;
-  isAvailable: boolean;
-  isVisible: boolean;
-  sku: string | null;
-  weight: number | null;
+  phoneNumber: string | null;
   createdAt: Date;
-  updatedAt: Date;
-  businessId: string;
-  categoryId: string | null;
-  category: Category | null;
-  options: Array<{
-    id: string;
-    title: string;
-    type: string;
-    position: number;
-    productId: string;
-    choices: Array<{
-      id: string;
-      label: string;
-      value: string;
-      price: number | null;
-      optionId: string;
-    }>;
-  }>;
+  lastSignInAt: Date | null;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderDate: Date | null;
+  firstOrderDate: Date | null;
+  status: string;
+  daysSinceLastOrder: number | null;
 };
 
-interface ProductTableProps {
-  products: Product[];
+interface CustomersTableProps {
+  customers: Customer[];
   businessId: string;
-  categories?: Category[];
-  onProductUpdate?: (products: Product[]) => void;
+  onCustomerUpdate?: (customers: Customer[]) => void;
 }
 
 // Custom filter function for multi-column searching
-const multiColumnFilterFn: FilterFn<Product> = (row, columnId, filterValue) => {
-  const searchableRowContent = `${row.original.name} ${
-    row.original.description || ""
-  }`.toLowerCase();
+const multiColumnFilterFn: FilterFn<Customer> = (
+  row,
+  columnId,
+  filterValue
+) => {
+  const searchableRowContent =
+    `${row.original.firstName} ${row.original.lastName} ${row.original.email}`.toLowerCase();
   const searchTerm = (filterValue ?? "").toLowerCase();
   return searchableRowContent.includes(searchTerm);
 };
 
-const availabilityFilterFn: FilterFn<Product> = (
+const statusFilterFn: FilterFn<Customer> = (
   row,
   columnId,
   filterValue: string[]
 ) => {
   if (!filterValue?.length) return true;
-  const isAvailable = row.getValue(columnId) as boolean;
-  const isVisible = row.original.isVisible;
-
-  let status = "";
-  if (!isVisible) {
-    status = "Hidden";
-  } else if (!isAvailable) {
-    status = "Unavailable";
-  } else {
-    status = "Available";
-  }
-
+  const status = row.getValue(columnId) as string;
   return filterValue.includes(status);
 };
 
-const createColumns = (categories?: Category[]): ColumnDef<Product>[] => [
+const columns: ColumnDef<Customer>[] = [
   {
     id: "select",
     header: ({ table }) => (
@@ -194,32 +146,28 @@ const createColumns = (categories?: Category[]): ColumnDef<Product>[] => [
     enableHiding: false,
   },
   {
-    header: "Product",
-    accessorKey: "name",
+    header: "Customer",
+    accessorKey: "firstName",
     cell: ({ row }) => (
       <div className="flex items-center gap-3">
         {row.original.imageUrl ? (
           <img
             src={row.original.imageUrl}
-            alt={row.original.name}
-            className="h-10 w-10 rounded-md object-cover"
+            alt={`${row.original.firstName} ${row.original.lastName}`}
+            className="h-10 w-10 rounded-full object-cover"
           />
         ) : (
-          <div className="h-10 w-10 rounded-md bg-muted flex items-center justify-center">
-            <span className="text-xs text-muted-foreground font-medium">
-              {row.original.name.charAt(0).toUpperCase()}
-            </span>
+          <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center">
+            <UserIcon size={16} className="text-muted-foreground" />
           </div>
         )}
         <div>
-          <div className="font-medium">{row.getValue("name")}</div>
-          {row.original.description && (
-            <div className="text-sm text-muted-foreground line-clamp-1">
-              {row.original.description.length > 25
-                ? `${row.original.description.substring(0, 25)}...`
-                : row.original.description}
-            </div>
-          )}
+          <div className="font-medium">
+            {row.original.firstName} {row.original.lastName}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            {row.original.email}
+          </div>
         </div>
       </div>
     ),
@@ -228,87 +176,105 @@ const createColumns = (categories?: Category[]): ColumnDef<Product>[] => [
     enableHiding: false,
   },
   {
-    header: "Category",
-    accessorKey: "category",
+    header: "Contact",
+    accessorKey: "phoneNumber",
     cell: ({ row }) => {
-      const category = row.original.category;
+      const phoneNumber = row.getValue("phoneNumber") as string | null;
+      const email = row.original.email;
       return (
-        <div className="text-sm">
-          {category ? category.name : "Uncategorized"}
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-sm">
+            <MailIcon size={14} className="text-muted-foreground" />
+            <span className="truncate">{email}</span>
+          </div>
+          {phoneNumber && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <PhoneIcon size={14} className="text-muted-foreground" />
+              <span>{phoneNumber}</span>
+            </div>
+          )}
+        </div>
+      );
+    },
+    size: 200,
+  },
+  {
+    header: "Orders",
+    accessorKey: "orderCount",
+    cell: ({ row }) => {
+      const orderCount = row.getValue("orderCount") as number;
+      const lastOrderDate = row.original.lastOrderDate;
+      return (
+        <div className="text-center">
+          <div className="font-medium text-lg">{orderCount}</div>
+          {lastOrderDate && (
+            <div className="text-xs text-muted-foreground">
+              Last:{" "}
+              {new Date(lastOrderDate).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })}
+            </div>
+          )}
+        </div>
+      );
+    },
+    size: 100,
+  },
+  {
+    header: "Total Spent",
+    accessorKey: "totalSpent",
+    cell: ({ row }) => {
+      const totalSpent = row.getValue("totalSpent") as number;
+      const formatted = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(totalSpent);
+      return <div className="font-medium text-center">{formatted}</div>;
+    },
+    size: 120,
+  },
+  {
+    header: "Status",
+    accessorKey: "status",
+    cell: ({ row }) => {
+      const status = row.getValue("status") as string;
+      const daysSinceLastOrder = row.original.daysSinceLastOrder;
+
+      const statusConfig = {
+        New: { label: "New", className: "bg-blue-500 text-white" },
+        Regular: { label: "Regular", className: "bg-green-500 text-white" },
+        VIP: { label: "VIP", className: "bg-purple-500 text-white" },
+        Inactive: { label: "Inactive", className: "bg-gray-500 text-white" },
+        Unknown: { label: "Unknown", className: "bg-slate-500 text-white" },
+      };
+
+      const config =
+        statusConfig[status as keyof typeof statusConfig] || statusConfig.New;
+
+      return (
+        <div className="text-center">
+          <Badge className={cn(config.className)}>{config.label}</Badge>
+          {daysSinceLastOrder !== null && (
+            <div className="text-xs text-muted-foreground mt-1">
+              {daysSinceLastOrder === 0
+                ? "Today"
+                : `${daysSinceLastOrder} days ago`}
+            </div>
+          )}
         </div>
       );
     },
     size: 120,
+    filterFn: statusFilterFn,
   },
   {
-    header: "Price",
-    accessorKey: "price",
-    cell: ({ row }) => {
-      const price = row.getValue("price") as number;
-      const formatted = new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(price);
-      return <div className="font-medium">{formatted}</div>;
-    },
-    size: 120,
-  },
-  {
-    header: "Weight",
-    accessorKey: "weight",
-    cell: ({ row }) => {
-      const weight = row.getValue("weight") as number | null;
-      if (!weight)
-        return <div className="text-sm text-muted-foreground">N/A</div>;
-      return <div className="text-sm">{weight} kg</div>;
-    },
-    size: 100,
-  },
-  {
-    header: "Options",
-    accessorKey: "options",
-    cell: ({ row }) => {
-      const options = row.original.options;
-      const optionsCount = options ? options.length : 0;
-      return (
-        <div className="text-sm">{optionsCount > 0 ? optionsCount : "N/A"}</div>
-      );
-    },
-    size: 100,
-  },
-  {
-    header: "Status",
-    accessorKey: "isAvailable",
-    cell: ({ row }) => {
-      const isAvailable = row.getValue("isAvailable") as boolean;
-      const isVisible = row.original.isVisible;
-
-      let status = "";
-      let className = "";
-
-      if (!isVisible) {
-        status = "Hidden";
-        className = "bg-slate-500 text-white";
-      } else if (!isAvailable) {
-        status = "Unavailable";
-        className = "bg-muted-foreground/60 text-primary-foreground";
-      } else {
-        status = "Available";
-        className = "bg-green-500 text-white";
-      }
-
-      return <Badge className={cn(className)}>{status}</Badge>;
-    },
-    size: 120,
-    filterFn: availabilityFilterFn,
-  },
-  {
-    header: "Created",
+    header: "Joined",
     accessorKey: "createdAt",
     cell: ({ row }) => {
       const date = new Date(row.getValue("createdAt"));
       return (
-        <div className="text-sm">
+        <div className="text-sm text-center">
           {date.toLocaleDateString("en-US", {
             month: "short",
             day: "numeric",
@@ -322,18 +288,17 @@ const createColumns = (categories?: Category[]): ColumnDef<Product>[] => [
   {
     id: "actions",
     header: () => <span className="sr-only">Actions</span>,
-    cell: ({ row }) => <RowActions row={row} categories={categories} />,
+    cell: ({ row }) => <RowActions row={row} />,
     size: 60,
     enableHiding: false,
   },
 ];
 
-export default function ProductTable({
-  products,
+export default function CustomersTable({
+  customers,
   businessId,
-  categories,
-  onProductUpdate,
-}: ProductTableProps) {
+  onCustomerUpdate,
+}: CustomersTableProps) {
   const id = useId();
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
@@ -345,111 +310,17 @@ export default function ProductTable({
 
   const [sorting, setSorting] = useState<SortingState>([
     {
-      id: "name",
-      desc: false,
+      id: "totalSpent",
+      desc: true,
     },
   ]);
 
-  const [data, setData] = useState<Product[]>(() => {
-    // Ensure initial data is properly serialized
-    return products.map((product) => ({
-      ...product,
-      price:
-        typeof product.price === "object"
-          ? Number(product.price)
-          : product.price,
-      weight:
-        product.weight && typeof product.weight === "object"
-          ? Number(product.weight)
-          : product.weight,
-      options:
-        product.options?.map((option) => ({
-          ...option,
-          choices:
-            option.choices?.map((choice) => ({
-              ...choice,
-              price:
-                choice.price && typeof choice.price === "object"
-                  ? Number(choice.price)
-                  : choice.price,
-            })) || [],
-        })) || [],
-    }));
-  });
-
-  // Create columns with categories
-  const columns = createColumns(categories);
+  const [data, setData] = useState<Customer[]>(customers);
 
   // Update local data when props change
   useEffect(() => {
-    // Ensure all Decimal objects are converted to numbers
-    const serializedProducts = products.map((product) => ({
-      ...product,
-      price:
-        typeof product.price === "object"
-          ? Number(product.price)
-          : product.price,
-      weight:
-        product.weight && typeof product.weight === "object"
-          ? Number(product.weight)
-          : product.weight,
-      options:
-        product.options?.map((option) => ({
-          ...option,
-          choices:
-            option.choices?.map((choice) => ({
-              ...choice,
-              price:
-                choice.price && typeof choice.price === "object"
-                  ? Number(choice.price)
-                  : choice.price,
-            })) || [],
-        })) || [],
-    }));
-    setData(serializedProducts);
-  }, [products]);
-
-  const handleDeleteRows = async () => {
-    try {
-      const selectedRows = table.getSelectedRowModel().rows;
-      const selectedIds = selectedRows.map((row) => row.original.id);
-
-      // Delete each product from the database
-      await Promise.all(selectedIds.map((id) => deleteProduct(id)));
-
-      // Update local state - ensure proper serialization
-      const updatedData = data
-        .filter(
-          (item) => !selectedRows.some((row) => row.original.id === item.id)
-        )
-        .map((product) => ({
-          ...product,
-          price:
-            typeof product.price === "object"
-              ? Number(product.price)
-              : product.price,
-          weight:
-            product.weight && typeof product.weight === "object"
-              ? Number(product.weight)
-              : product.weight,
-        }));
-
-      setData(updatedData);
-      onProductUpdate?.(updatedData);
-      table.resetRowSelection();
-
-      toast.success("Products deleted successfully!", {
-        description: `${selectedIds.length} product${
-          selectedIds.length === 1 ? "" : "s"
-        } removed.`,
-      });
-    } catch (error) {
-      console.error("Error deleting products:", error);
-      toast.error("Failed to delete products", {
-        description: "Please try again.",
-      });
-    }
-  };
+    setData(customers);
+  }, [customers]);
 
   const table = useReactTable({
     data,
@@ -472,38 +343,30 @@ export default function ProductTable({
     },
   });
 
-  // Get unique availability values
-  const uniqueAvailabilityValues = useMemo(() => {
-    return ["Available", "Unavailable", "Hidden"];
+  // Get unique status values
+  const uniqueStatusValues = useMemo(() => {
+    return ["New", "Regular", "VIP", "Inactive", "Unknown"];
   }, []);
 
-  // Get counts for each availability status
-  const availabilityCounts = useMemo(() => {
+  // Get counts for each status
+  const statusCounts = useMemo(() => {
     const counts = new Map();
-    const availableCount = data.filter(
-      (product) => product.isVisible && product.isAvailable
-    ).length;
-    const unavailableCount = data.filter(
-      (product) => product.isVisible && !product.isAvailable
-    ).length;
-    const hiddenCount = data.filter((product) => !product.isVisible).length;
-    counts.set("Available", availableCount);
-    counts.set("Unavailable", unavailableCount);
-    counts.set("Hidden", hiddenCount);
+    uniqueStatusValues.forEach((status) => {
+      const count = data.filter(
+        (customer) => customer.status === status
+      ).length;
+      counts.set(status, count);
+    });
     return counts;
-  }, [data]);
+  }, [data, uniqueStatusValues]);
 
-  const selectedAvailabilityStatuses = useMemo(() => {
-    const filterValue = table
-      .getColumn("isAvailable")
-      ?.getFilterValue() as string[];
+  const selectedStatuses = useMemo(() => {
+    const filterValue = table.getColumn("status")?.getFilterValue() as string[];
     return filterValue ?? [];
-  }, [table.getColumn("isAvailable")?.getFilterValue()]);
+  }, [table.getColumn("status")?.getFilterValue()]);
 
-  const handleAvailabilityChange = (checked: boolean, value: string) => {
-    const filterValue = table
-      .getColumn("isAvailable")
-      ?.getFilterValue() as string[];
+  const handleStatusChange = (checked: boolean, value: string) => {
+    const filterValue = table.getColumn("status")?.getFilterValue() as string[];
     const newFilterValue = filterValue ? [...filterValue] : [];
 
     if (checked) {
@@ -516,7 +379,7 @@ export default function ProductTable({
     }
 
     table
-      .getColumn("isAvailable")
+      .getColumn("status")
       ?.setFilterValue(newFilterValue.length ? newFilterValue : undefined);
   };
 
@@ -532,27 +395,28 @@ export default function ProductTable({
               ref={inputRef}
               className={cn(
                 "peer min-w-60 ps-9",
-                Boolean(table.getColumn("name")?.getFilterValue()) && "pe-9"
+                Boolean(table.getColumn("firstName")?.getFilterValue()) &&
+                  "pe-9"
               )}
               value={
-                (table.getColumn("name")?.getFilterValue() ?? "") as string
+                (table.getColumn("firstName")?.getFilterValue() ?? "") as string
               }
               onChange={(e) =>
-                table.getColumn("name")?.setFilterValue(e.target.value)
+                table.getColumn("firstName")?.setFilterValue(e.target.value)
               }
-              placeholder="Filter by name or description..."
+              placeholder="Filter by name or email..."
               type="text"
-              aria-label="Filter by name or description"
+              aria-label="Filter by name or email"
             />
             <div className="text-muted-foreground/80 pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 peer-disabled:opacity-50">
               <ListFilterIcon size={16} aria-hidden="true" />
             </div>
-            {Boolean(table.getColumn("name")?.getFilterValue()) && (
+            {Boolean(table.getColumn("firstName")?.getFilterValue()) && (
               <button
                 className="text-muted-foreground/80 hover:text-foreground focus-visible:border-ring focus-visible:ring-ring/50 absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-md transition-[color,box-shadow] outline-none focus:z-10 focus-visible:ring-[3px] disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Clear filter"
                 onClick={() => {
-                  table.getColumn("name")?.setFilterValue("");
+                  table.getColumn("firstName")?.setFilterValue("");
                   if (inputRef.current) {
                     inputRef.current.focus();
                   }
@@ -562,7 +426,8 @@ export default function ProductTable({
               </button>
             )}
           </div>
-          {/* Filter by availability */}
+
+          {/* Filter by status */}
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline">
@@ -571,10 +436,10 @@ export default function ProductTable({
                   size={16}
                   aria-hidden="true"
                 />
-                Availability
-                {selectedAvailabilityStatuses.length > 0 && (
+                Status
+                {selectedStatuses.length > 0 && (
                   <span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
-                    {selectedAvailabilityStatuses.length}
+                    {selectedStatuses.length}
                   </span>
                 )}
               </Button>
@@ -582,25 +447,25 @@ export default function ProductTable({
             <PopoverContent className="w-auto min-w-36 p-3" align="start">
               <div className="space-y-3">
                 <div className="text-muted-foreground text-xs font-medium">
-                  Filters
+                  Status Filters
                 </div>
                 <div className="space-y-3">
-                  {uniqueAvailabilityValues.map((value, i) => (
+                  {uniqueStatusValues.map((value, i) => (
                     <div key={value} className="flex items-center gap-2">
                       <Checkbox
-                        id={`${id}-${i}`}
-                        checked={selectedAvailabilityStatuses.includes(value)}
+                        id={`${id}-status-${i}`}
+                        checked={selectedStatuses.includes(value)}
                         onCheckedChange={(checked: boolean) =>
-                          handleAvailabilityChange(checked, value)
+                          handleStatusChange(checked, value)
                         }
                       />
                       <Label
-                        htmlFor={`${id}-${i}`}
+                        htmlFor={`${id}-status-${i}`}
                         className="flex grow justify-between gap-2 font-normal"
                       >
                         {value}{" "}
                         <span className="text-muted-foreground ms-2 text-xs">
-                          {availabilityCounts.get(value)}
+                          {statusCounts.get(value)}
                         </span>
                       </Label>
                     </div>
@@ -609,6 +474,7 @@ export default function ProductTable({
               </div>
             </PopoverContent>
           </Popover>
+
           {/* Toggle columns visibility */}
           <DropdownMenu>
             {/* <DropdownMenuTrigger asChild>
@@ -645,58 +511,24 @@ export default function ProductTable({
           </DropdownMenu>
         </div>
         <div className="flex items-center gap-3">
-          {/* Delete button */}
-          {table.getSelectedRowModel().rows.length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button className="ml-auto" variant="outline">
-                  <TrashIcon
-                    className="-ms-1 opacity-60"
-                    size={16}
-                    aria-hidden="true"
-                  />
-                  Delete
-                  <span className="bg-background text-muted-foreground/70 -me-1 inline-flex h-5 max-h-full items-center rounded border px-1 font-[inherit] text-[0.625rem] font-medium">
-                    {table.getSelectedRowModel().rows.length}
-                  </span>
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="!fixed !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2">
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Delete Products</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Are you sure you want to delete{" "}
-                    <span className="font-semibold">
-                      {table.getSelectedRowModel().rows.length}
-                    </span>{" "}
-                    selected{" "}
-                    {table.getSelectedRowModel().rows.length === 1
-                      ? "product"
-                      : "products"}
-                    ? This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleDeleteRows}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  >
-                    Delete
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-          {/* Add product dialog */}
-          <AddProductDialog
-            businessId={businessId}
-            categories={categories}
-            onProductAdded={() => {
-              // Trigger a refresh of the products list
-              window.location.reload();
-            }}
-          />
+          {/* Customer statistics */}
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span>
+              <span className="font-medium text-foreground">{data.length}</span>{" "}
+              customers
+            </span>
+            <span>
+              <span className="font-medium text-foreground">
+                {new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: "USD",
+                }).format(
+                  data.reduce((sum, customer) => sum + customer.totalSpent, 0)
+                )}
+              </span>{" "}
+              total revenue
+            </span>
+          </div>
         </div>
       </div>
 
@@ -721,7 +553,6 @@ export default function ProductTable({
                           )}
                           onClick={header.column.getToggleSortingHandler()}
                           onKeyDown={(e) => {
-                            // Enhanced keyboard handling for sorting
                             if (
                               header.column.getCanSort() &&
                               (e.key === "Enter" || e.key === " ")
@@ -788,7 +619,7 @@ export default function ProductTable({
                   colSpan={columns.length}
                   className="h-24 text-center"
                 >
-                  No results.
+                  No customers found.
                 </TableCell>
               </TableRow>
             )}
@@ -913,136 +744,58 @@ export default function ProductTable({
   );
 }
 
-function RowActions({
-  row,
-  categories,
-}: {
-  row: Row<Product>;
-  categories?: Category[];
-}) {
-  const product = row.original;
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+function RowActions({ row }: { row: Row<Customer> }) {
+  const customer = row.original;
 
-  const handleStatusChange = async (
-    status: "available" | "unavailable" | "hidden"
-  ) => {
-    try {
-      let updateData: { isAvailable?: boolean; isVisible?: boolean } = {};
-
-      switch (status) {
-        case "available":
-          updateData = { isAvailable: true, isVisible: true };
-          break;
-        case "unavailable":
-          updateData = { isAvailable: false, isVisible: true };
-          break;
-        case "hidden":
-          updateData = { isVisible: false };
-          break;
-      }
-
-      await updateProduct(product.id, updateData);
-
-      toast.success("Product updated successfully!", {
-        description: `${product.name} is now ${status}.`,
-      });
-
-      // Refresh the page to show updated data
-      window.location.reload();
-    } catch (error) {
-      console.error("Error updating product:", error);
-      toast.error("Failed to update product", {
-        description: "Please try again.",
-      });
-    }
+  const handleViewProfile = () => {
+    toast.info("Customer profile", {
+      description: `Viewing profile for ${customer.firstName} ${customer.lastName}`,
+    });
   };
 
-  const handleDelete = async () => {
-    try {
-      await deleteProduct(product.id);
+  const handleSendEmail = () => {
+    window.open(`mailto:${customer.email}`, "_blank");
+  };
 
-      toast.success("Product deleted successfully!", {
-        description: `${product.name} has been removed.`,
-      });
-
-      // Refresh the page to show updated data
-      window.location.reload();
-    } catch (error) {
-      console.error("Error deleting product:", error);
-      toast.error("Failed to delete product", {
-        description: "Please try again.",
-      });
+  const handleCallCustomer = () => {
+    if (customer.phoneNumber) {
+      window.open(`tel:${customer.phoneNumber}`, "_blank");
+    } else {
+      toast.error("No phone number available");
     }
   };
 
   return (
-    <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <div className="flex justify-end">
-            <Button
-              size="icon"
-              variant="ghost"
-              className="shadow-none"
-              aria-label="Product actions"
-            >
-              <EllipsisIcon size={16} aria-hidden="true" />
-            </Button>
-          </div>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={() => setIsEditDialogOpen(true)}>
-            <span>Edit</span>
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger>More</DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem
-                  onClick={() => handleStatusChange("available")}
-                  disabled={product.isVisible && product.isAvailable}
-                >
-                  Set Available
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleStatusChange("unavailable")}
-                  disabled={product.isVisible && !product.isAvailable}
-                >
-                  Set Unavailable
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => handleStatusChange("hidden")}
-                  disabled={!product.isVisible}
-                >
-                  Set Hidden
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={handleDelete}
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <div className="flex justify-end">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="shadow-none"
+            aria-label="Customer actions"
           >
-            <span>Delete</span>
+            <EllipsisIcon size={16} aria-hidden="true" />
+          </Button>
+        </div>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={handleViewProfile}>
+          <UserIcon size={16} className="mr-2" />
+          <span>View Profile</span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={handleSendEmail}>
+          <MailIcon size={16} className="mr-2" />
+          <span>Send Email</span>
+        </DropdownMenuItem>
+        {customer.phoneNumber && (
+          <DropdownMenuItem onClick={handleCallCustomer}>
+            <PhoneIcon size={16} className="mr-2" />
+            <span>Call Customer</span>
           </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-
-      {/* Edit Product Dialog */}
-      {isEditDialogOpen && (
-        <AddProductDialog
-          businessId={product.businessId}
-          categories={categories}
-          product={product}
-          onProductAdded={() => {
-            setIsEditDialogOpen(false);
-            // Refresh the page to show updated data
-            window.location.reload();
-          }}
-        />
-      )}
-    </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

@@ -54,9 +54,10 @@ export async function POST(request: NextRequest) {
         name: businessName,
         description,
         category: businessType,
-        address: `${address1}${
-          address2 ? `, ${address2}` : ""
-        }, Unit ${unitNumber}, ${postalCode}`,
+        address1,
+        address2,
+        unitNumber,
+        postalCode,
         phone,
         email,
         pickupAvailable,

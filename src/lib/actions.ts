@@ -254,3 +254,125 @@ export const getOrders = async (businessId: string) => {
     })),
   }));
 };
+
+export const getCustomers = async (businessId: string) => {
+  try {
+    // Import clerkClient here to avoid issues with Next.js SSR
+    const { clerkClient } = await import("@clerk/nextjs/server");
+    const client = await clerkClient();
+
+    // Get all orders for this business to extract unique user IDs
+    const orders = await prisma.order.findMany({
+      where: { businessId },
+      select: {
+        userId: true,
+        total: true,
+        createdAt: true,
+        status: true,
+      },
+    });
+
+    // Get unique user IDs
+    const uniqueUserIds = [...new Set(orders.map((order) => order.userId))];
+
+    // Fetch user details from Clerk for each unique user ID
+    const customerPromises = uniqueUserIds.map(async (userId) => {
+      try {
+        const user = await client.users.getUser(userId);
+
+        // Calculate customer statistics
+        const userOrders = orders.filter((order) => order.userId === userId);
+        const totalSpent = userOrders.reduce(
+          (sum, order) => sum + Number(order.total),
+          0
+        );
+        const orderCount = userOrders.length;
+        const lastOrderDate = userOrders.reduce((latest, order) => {
+          return !latest || order.createdAt > latest ? order.createdAt : latest;
+        }, null as Date | null);
+        const firstOrderDate = userOrders.reduce((earliest, order) => {
+          return !earliest || order.createdAt < earliest
+            ? order.createdAt
+            : earliest;
+        }, null as Date | null);
+
+        // Customer status based on order count and recency
+        const daysSinceLastOrder = lastOrderDate
+          ? Math.floor(
+              (new Date().getTime() - new Date(lastOrderDate).getTime()) /
+                (1000 * 60 * 60 * 24)
+            )
+          : null;
+
+        let status = "New";
+        if (orderCount >= 5) {
+          status = "VIP";
+        } else if (orderCount >= 2) {
+          status = "Regular";
+        }
+        if (daysSinceLastOrder && daysSinceLastOrder > 30) {
+          status = "Inactive";
+        }
+
+        return {
+          id: user.id,
+          email: user.emailAddresses[0]?.emailAddress || "",
+          firstName: user.firstName || "",
+          lastName: user.lastName || "",
+          imageUrl: user.imageUrl || null,
+          phoneNumber: user.phoneNumbers[0]?.phoneNumber || null,
+          createdAt: new Date(user.createdAt),
+          lastSignInAt: user.lastSignInAt ? new Date(user.lastSignInAt) : null,
+          // Order statistics
+          orderCount,
+          totalSpent,
+          lastOrderDate,
+          firstOrderDate,
+          status,
+          daysSinceLastOrder,
+        };
+      } catch (error) {
+        console.error(`Failed to fetch user ${userId}:`, error);
+        // Return a placeholder for users we can't fetch
+        return {
+          id: userId,
+          email: `${userId.slice(0, 8)}...@unknown.com`,
+          firstName: "Unknown",
+          lastName: "User",
+          imageUrl: null,
+          phoneNumber: null,
+          createdAt: new Date(),
+          lastSignInAt: null,
+          orderCount: orders.filter((order) => order.userId === userId).length,
+          totalSpent: orders
+            .filter((order) => order.userId === userId)
+            .reduce((sum, order) => sum + Number(order.total), 0),
+          lastOrderDate: orders
+            .filter((order) => order.userId === userId)
+            .reduce((latest, order) => {
+              return !latest || order.createdAt > latest
+                ? order.createdAt
+                : latest;
+            }, null as Date | null),
+          firstOrderDate: orders
+            .filter((order) => order.userId === userId)
+            .reduce((earliest, order) => {
+              return !earliest || order.createdAt < earliest
+                ? order.createdAt
+                : earliest;
+            }, null as Date | null),
+          status: "Unknown",
+          daysSinceLastOrder: null,
+        };
+      }
+    });
+
+    const customers = await Promise.all(customerPromises);
+
+    // Sort by total spent (descending)
+    return customers.sort((a, b) => b.totalSpent - a.totalSpent);
+  } catch (error) {
+    console.error("Error fetching customers:", error);
+    return [];
+  }
+};

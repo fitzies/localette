@@ -21,6 +21,7 @@ import {
   UserButton,
 } from "@clerk/nextjs";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { hasBusiness } from "@/lib/functions";
 
 // Navigation links array to be used in both desktop and mobile menus
@@ -28,6 +29,7 @@ const navigationLinks = [
   { href: "#", label: "Home", id: "home" },
   { href: "#features", label: "Features", id: "features" },
   { href: "#why", label: "Why", id: "why" },
+  // { href: "/pricing", label: "Pricing", id: "pricing" },
   // { href: "#", label: "Join" },
 ];
 
@@ -36,11 +38,33 @@ interface NavProps {
 }
 
 export default function Nav({ mode = "home" }: NavProps) {
-  const [activeSection, setActiveSection] = useState("home");
+  const [activeSection, setActiveSection] = useState("");
   const [userHasBusiness, setUserHasBusiness] = useState(false);
   const [businessId, setBusinessId] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const pathname = usePathname();
 
+  // Handle mounting
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Handle active section based on pathname
+  useEffect(() => {
+    if (!mounted) return;
+
+    if (pathname === "/pricing") {
+      setActiveSection("pricing");
+    } else if (pathname === "/") {
+      // On home page, start with home section
+      setActiveSection("home");
+    }
+  }, [mounted, pathname]);
+
+  // Handle scroll-based active sections only on home page
+  useEffect(() => {
+    if (!mounted || pathname !== "/") return;
+
     const handleScroll = () => {
       const sections = ["home", "features", "why"];
       const scrollPosition = window.scrollY + 100; // Offset for fixed header
@@ -59,7 +83,7 @@ export default function Nav({ mode = "home" }: NavProps) {
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [mounted, pathname]);
 
   // Check if user has business when component mounts
   useEffect(() => {
@@ -79,7 +103,12 @@ export default function Nav({ mode = "home" }: NavProps) {
   }, []);
 
   const handleNavClick = (sectionId: string) => {
-    setActiveSection(sectionId);
+    // For scroll sections on home page, let scroll handler manage active state
+    // For pricing, navigation will handle it via pathname change
+    if (pathname === "/" && ["home", "features", "why"].includes(sectionId)) {
+      // Don't manually set active section, let scroll handler do it
+      return;
+    }
   };
 
   // Render simplified nav for creation and dashboard modes
