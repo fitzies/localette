@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useState,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useCallback,
-} from "react";
+import { useState, useEffect, useId, useMemo, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -15,9 +8,6 @@ import {
   PlusIcon,
   XIcon,
   ImageUpIcon,
-  ArrowLeftIcon,
-  ZoomInIcon,
-  ZoomOutIcon,
   GripVerticalIcon,
   TrashIcon,
 } from "lucide-react";
@@ -55,15 +45,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Slider } from "@/components/ui/slider";
 import { Card } from "@/components/ui/card";
-import {
-  Cropper,
-  CropperCropArea,
-  CropperDescription,
-  CropperImage,
-  type Area,
-} from "@/components/ui/cropper";
 // Option types
 export type OptionType = "TEXT" | "NUMBER" | "DATE" | "CHECKBOX" | "SELECTION";
 
@@ -162,57 +144,6 @@ const productSchema = z.object({
 
 type ProductFormData = z.infer<typeof productSchema>;
 
-// Helper function to create a cropped image blob
-const createImage = (url: string): Promise<HTMLImageElement> =>
-  new Promise((resolve, reject) => {
-    const image = new Image();
-    image.addEventListener("load", () => resolve(image));
-    image.addEventListener("error", (error) => reject(error));
-    image.setAttribute("crossOrigin", "anonymous");
-    image.src = url;
-  });
-
-async function getCroppedImg(
-  imageSrc: string,
-  pixelCrop: Area,
-  outputWidth: number = pixelCrop.width,
-  outputHeight: number = pixelCrop.height
-): Promise<Blob | null> {
-  try {
-    const image = await createImage(imageSrc);
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-
-    if (!ctx) {
-      return null;
-    }
-
-    canvas.width = outputWidth;
-    canvas.height = outputHeight;
-
-    ctx.drawImage(
-      image,
-      pixelCrop.x,
-      pixelCrop.y,
-      pixelCrop.width,
-      pixelCrop.height,
-      0,
-      0,
-      outputWidth,
-      outputHeight
-    );
-
-    return new Promise((resolve) => {
-      canvas.toBlob((blob) => {
-        resolve(blob);
-      }, "image/jpeg");
-    });
-  } catch (error) {
-    console.error("Error in getCroppedImg:", error);
-    return null;
-  }
-}
-
 export function AddProductDialog({
   businessId,
   categories = [],
@@ -275,14 +206,10 @@ export function AddProductDialog({
   const imagePreviewUrl = imageFiles[0]?.preview || null;
   const imageFileName = imageFiles[0]?.name || null;
 
-  // Cropping state - initialize with existing image in edit mode
+  // Image state - initialize with existing image in edit mode
   const [finalImageUrl, setFinalImageUrl] = useState<string | null>(
     product?.imageUrl || null
   );
-  const [isCropDialogOpen, setIsCropDialogOpen] = useState(false);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const previousFileIdRef = useRef<string | undefined | null>(null);
 
   // Convert existing product options to internal format
   const convertExistingOptions = (): ProductOption[] => {
@@ -353,65 +280,6 @@ export function AddProductDialog({
   const canSubmit =
     isFormValid && areOptionsValid && !isImageUploading && !isSubmitting;
 
-  // Callback for Cropper to provide crop data
-  const handleCropChange = useCallback((pixels: Area | null) => {
-    setCroppedAreaPixels(pixels);
-  }, []);
-
-  // Handle applying the crop
-  const handleApplyCrop = async () => {
-    if (!imagePreviewUrl || !imageFiles[0]?.id || !croppedAreaPixels) {
-      console.error("Missing data for apply:", {
-        imagePreviewUrl,
-        fileId: imageFiles[0]?.id,
-        croppedAreaPixels,
-      });
-      if (imageFiles[0]?.id) {
-        removeImage(imageFiles[0]?.id);
-        setCroppedAreaPixels(null);
-      }
-      return;
-    }
-
-    try {
-      const croppedBlob = await getCroppedImg(
-        imagePreviewUrl,
-        croppedAreaPixels
-      );
-
-      if (!croppedBlob) {
-        throw new Error("Failed to generate cropped image blob.");
-      }
-
-      // Convert blob to file for upload
-      const croppedFile = new File(
-        [croppedBlob],
-        imageFiles[0]?.name || "cropped-image.jpg",
-        {
-          type: "image/jpeg",
-        }
-      );
-
-      // Upload the cropped image
-      await startImageUpload([croppedFile]);
-
-      // Create preview URL for display
-      const newFinalUrl = URL.createObjectURL(croppedBlob);
-      if (finalImageUrl) {
-        URL.revokeObjectURL(finalImageUrl);
-      }
-      setFinalImageUrl(newFinalUrl);
-
-      setIsCropDialogOpen(false);
-    } catch (error) {
-      console.error("Error during apply:", error);
-      toast.error("Failed to crop image", {
-        description: "Please try again.",
-      });
-      setIsCropDialogOpen(false);
-    }
-  };
-
   const handleRemoveFinalImage = () => {
     if (finalImageUrl) {
       URL.revokeObjectURL(finalImageUrl);
@@ -426,10 +294,24 @@ export function AddProductDialog({
   // Handle image upload when files are selected
   const handleImageChange = async (files: any) => {
     if (files && files.length > 0) {
-      // Don't upload immediately, open crop dialog instead
-      setIsCropDialogOpen(true);
-      setCroppedAreaPixels(null);
-      setZoom(1);
+      try {
+        // Upload the image directly
+        const fileToUpload = files[0]?.file || files[0];
+        await startImageUpload([fileToUpload]);
+
+        // Set the preview URL for display
+        const previewUrl =
+          files[0]?.preview || URL.createObjectURL(fileToUpload);
+        if (finalImageUrl && finalImageUrl.startsWith("blob:")) {
+          URL.revokeObjectURL(finalImageUrl);
+        }
+        setFinalImageUrl(previewUrl);
+      } catch (error) {
+        console.error("Error uploading image:", error);
+        toast.error("Failed to upload image", {
+          description: "Please try again.",
+        });
+      }
     }
   };
 
@@ -497,7 +379,7 @@ export function AddProductDialog({
     setProductOptions(newOptions);
   };
 
-  // Trigger crop dialog when files are selected
+  // Trigger image upload when files are selected
   useEffect(() => {
     if (imageFiles.length > 0) {
       handleImageChange(imageFiles);
@@ -595,7 +477,7 @@ export function AddProductDialog({
       form.reset();
       nameCharacterLimit.setValue("");
       descriptionCharacterLimit.setValue("");
-      // Clear uploaded files and crop state
+      // Clear uploaded files and image state
       if (imageFiles.length > 0) {
         removeImage(imageFiles[0]?.id);
       }
@@ -603,8 +485,6 @@ export function AddProductDialog({
         URL.revokeObjectURL(finalImageUrl);
       }
       setFinalImageUrl(null);
-      setCroppedAreaPixels(null);
-      setZoom(1);
       setProductOptions([]);
       setOpen(false);
       onProductAdded?.();
@@ -846,72 +726,88 @@ export function AddProductDialog({
                   <FormLabel>Product Image</FormLabel>
                   <FormControl>
                     <div className="space-y-2">
-                      <div
-                        role="button"
-                        onClick={openImageDialog}
-                        onDragEnter={handleDragEnter}
-                        onDragLeave={handleDragLeave}
-                        onDragOver={handleDragOver}
-                        onDrop={handleDrop}
-                        data-dragging={isDragging || undefined}
-                        className="border-input hover:bg-accent/50 data-[dragging=true]:bg-accent/50 has-[input:focus]:border-ring has-[input:focus]:ring-ring/50 relative flex min-h-32 flex-col items-center justify-center overflow-hidden rounded-lg border border-dashed p-4 transition-colors has-disabled:pointer-events-none has-disabled:opacity-50 has-[img]:border-none has-[input:focus]:ring-[3px]"
-                      >
-                        <input
-                          {...getImageInputProps()}
-                          className="sr-only"
-                          aria-label="Upload product image"
-                        />
-                        {finalImageUrl ? (
-                          <div className="absolute inset-0">
-                            <img
-                              src={finalImageUrl}
-                              alt={
-                                imageFiles[0]?.name || "Uploaded product image"
-                              }
-                              className="size-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center px-4 py-3 text-center">
-                            <div
-                              className="bg-background mb-2 flex size-8 shrink-0 items-center justify-center rounded-full border"
-                              aria-hidden="true"
-                            >
-                              <ImageUpIcon className="size-4 opacity-60" />
+                      <div className="relative">
+                        <div
+                          role="button"
+                          onClick={openImageDialog}
+                          onDragEnter={handleDragEnter}
+                          onDragLeave={handleDragLeave}
+                          onDragOver={handleDragOver}
+                          onDrop={handleDrop}
+                          data-dragging={isDragging || undefined}
+                          className="border-input hover:bg-accent/50 data-[dragging=true]:bg-accent/50 has-[input:focus]:border-ring has-[input:focus]:ring-ring/50 relative flex aspect-square w-full max-w-sm mx-auto flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed p-4 transition-colors has-disabled:pointer-events-none has-disabled:opacity-50 has-[input:focus]:ring-[3px]"
+                        >
+                          <input
+                            {...getImageInputProps()}
+                            className="sr-only"
+                            aria-label="Upload product image"
+                          />
+                          {finalImageUrl ? (
+                            <div className="absolute inset-0 flex items-center justify-center p-4">
+                              <img
+                                src={finalImageUrl}
+                                alt={
+                                  imageFiles[0]?.name ||
+                                  "Uploaded product image"
+                                }
+                                className="mx-auto max-h-full max-w-full rounded object-contain"
+                              />
                             </div>
-                            <p className="mb-1 text-sm font-medium">
-                              Drop image here or click to browse
-                            </p>
-                            <p className="text-muted-foreground text-xs">
-                              Max size: {maxSizeMB}MB
-                            </p>
-                          </div>
-                        )}
-                        {isImageUploading && (
-                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center px-4 py-3 text-center">
+                              <div
+                                className="bg-background mb-2 flex size-11 shrink-0 items-center justify-center rounded-full border"
+                                aria-hidden="true"
+                              >
+                                <ImageUpIcon className="size-4 opacity-60" />
+                              </div>
+                              <p className="mb-1.5 text-sm font-medium">
+                                Drop your image here
+                              </p>
+                              <p className="text-muted-foreground text-xs mb-4">
+                                PNG, JPG or GIF (max. {maxSizeMB}MB)
+                              </p>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={openImageDialog}
+                                className="pointer-events-auto"
+                              >
+                                <ImageUpIcon
+                                  className="-ms-1 size-4 opacity-60"
+                                  aria-hidden="true"
+                                />
+                                Select image
+                              </Button>
+                            </div>
+                          )}
+                          {isImageUploading && (
+                            <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-xl">
+                              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                            </div>
+                          )}
+                        </div>
+
+                        {finalImageUrl && !isImageUploading && (
+                          <div className="absolute top-4 right-4">
+                            <button
+                              type="button"
+                              className="focus-visible:border-ring focus-visible:ring-ring/50 z-50 flex size-8 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white transition-[color,box-shadow] outline-none hover:bg-black/80 focus-visible:ring-[3px]"
+                              onClick={handleRemoveFinalImage}
+                              aria-label="Remove image"
+                            >
+                              <XIcon className="size-4" aria-hidden="true" />
+                            </button>
                           </div>
                         )}
                       </div>
-                      {finalImageUrl && !isImageUploading && (
-                        <div className="flex items-center justify-between">
-                          <p className="text-muted-foreground text-xs">
-                            {imageFileName}
-                          </p>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleRemoveFinalImage}
-                            className="h-6 px-2 text-xs"
-                          >
-                            <XIcon className="size-3 mr-1" />
-                            Remove
-                          </Button>
-                        </div>
-                      )}
+
                       {errors.length > 0 && (
-                        <div className="text-destructive flex items-center gap-1 text-xs">
+                        <div
+                          className="text-destructive flex items-center gap-1 text-xs"
+                          role="alert"
+                        >
                           <span>{errors[0]}</span>
                         </div>
                       )}
@@ -1201,79 +1097,6 @@ export function AddProductDialog({
           </form>
         </Form>
       </DialogContent>
-
-      {/* Cropper Dialog */}
-      <Dialog open={isCropDialogOpen} onOpenChange={setIsCropDialogOpen}>
-        <DialogContent className="gap-0 p-0 sm:max-w-[800px] *:[button]:hidden z-[100] !fixed !top-1/2 !left-1/2 !-translate-x-1/2 !-translate-y-1/2">
-          <DialogDescription className="sr-only">
-            Crop image dialog
-          </DialogDescription>
-          <DialogHeader className="contents space-y-0 text-left">
-            <DialogTitle className="flex items-center justify-between border-b p-4 text-base">
-              <div className="flex items-center gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="-my-1 opacity-60"
-                  onClick={() => setIsCropDialogOpen(false)}
-                  aria-label="Cancel"
-                >
-                  <ArrowLeftIcon aria-hidden="true" />
-                </Button>
-                <span>Crop image</span>
-              </div>
-              <Button
-                className="-my-1"
-                onClick={handleApplyCrop}
-                disabled={!imagePreviewUrl}
-                autoFocus
-              >
-                Apply
-              </Button>
-            </DialogTitle>
-          </DialogHeader>
-          {imagePreviewUrl && (
-            <Cropper
-              className="h-96 sm:h-[500px]"
-              image={imagePreviewUrl}
-              zoom={zoom}
-              onCropChange={() => {}} // Required by react-easy-crop
-              onCropComplete={handleCropChange}
-              onZoomChange={setZoom}
-              aspect={1}
-              cropShape="rect"
-            >
-              <CropperDescription />
-              <CropperImage />
-              <CropperCropArea />
-            </Cropper>
-          )}
-          <DialogFooter className="border-t px-4 py-6">
-            <div className="mx-auto flex w-full max-w-80 items-center gap-4">
-              <ZoomOutIcon
-                className="shrink-0 opacity-60"
-                size={16}
-                aria-hidden="true"
-              />
-              <Slider
-                defaultValue={[1]}
-                value={[zoom]}
-                min={1}
-                max={3}
-                step={0.1}
-                onValueChange={(value) => setZoom(value[0] || 1)}
-                aria-label="Zoom slider"
-              />
-              <ZoomInIcon
-                className="shrink-0 opacity-60"
-                size={16}
-                aria-hidden="true"
-              />
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Dialog>
   );
 }

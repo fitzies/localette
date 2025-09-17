@@ -45,24 +45,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const [businessId, setBusinessId] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
 
-  // React.useEffect(() => {
-  //   const fetchBusiness = async () => {
-  //     try {
-  //       const response = await getBusiness();
-  //       if (response.success && response.business) {
-  //         setBusinessName(response.business.businessName);
-  //         setBusinessId(response.business.id);
-  //       }
-  //     } catch (error) {
-  //       console.error("Failed to fetch business:", error);
-  //       // Keep default name if fetch fails
-  //     } finally {
-  //       setIsLoading(false);
-  //     }
-  //   };
+  React.useEffect(() => {
+    const fetchBusiness = async () => {
+      try {
+        const response = await getBusiness();
+        if (response.success && response.business) {
+          setBusinessName(response.business.businessName);
+          setBusinessId(response.business.id);
+        }
+      } catch (error) {
+        console.error("Failed to fetch business:", error);
+        // Keep default name if fetch fails
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  //   fetchBusiness();
-  // }, []); // Empty dependency array ensures this only runs once
+    fetchBusiness();
+  }, []); // Empty dependency array ensures this only runs once
 
   // Create navigation data with business ID
   const data = {

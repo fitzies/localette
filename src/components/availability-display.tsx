@@ -1,3 +1,5 @@
+import { Badge } from "./ui/badge";
+
 interface AvailabilityData {
   [key: string]: {
     from: string;
@@ -27,17 +29,14 @@ export function AvailabilityDisplay({
   return (
     <div className="inline-flex flex-wrap gap-1 text-xs">
       {sortedDays.map((day) => (
-        <div
-          key={day}
-          className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md"
-        >
-          <span className="font-medium text-muted-foreground">
+        <Badge key={day} variant={"outline"}>
+          <span className="font-medium">
             {dayNames[day as keyof typeof dayNames]}
           </span>
-          <span className="text-foreground">
+          <span>
             {availability[day].from}-{availability[day].to}
           </span>
-        </div>
+        </Badge>
       ))}
     </div>
   );

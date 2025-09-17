@@ -1,17 +1,52 @@
 "use server";
 
-import { cache } from "react";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { prisma } from "./prisma";
 
-export const getBusiness = cache(async (bussinessId: string) => {
-  return await prisma.business.findUnique({
+export const getBusiness = async (bussinessId: string) => {
+  const business = await prisma.business.findUnique({
     where: { id: bussinessId },
-    include: { orders: true, products: true },
+    include: {
+      orders: true,
+      products: {
+        include: {
+          category: true,
+          options: {
+            include: {
+              choices: true,
+            },
+          },
+        },
+      },
+    },
   });
-});
 
-export const getProducts = cache(async (businessId: string) => {
+  if (!business) return null;
+
+  // Get categories for this business
+  const categories = await prisma.category.findMany({
+    where: { businessId: bussinessId },
+    include: {
+      products: {
+        include: {
+          options: {
+            include: {
+              choices: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return {
+    ...business,
+    categories,
+  };
+};
+
+export const getProducts = async (businessId: string) => {
   const products = await prisma.product.findMany({
     where: { businessId },
     include: {
@@ -37,14 +72,14 @@ export const getProducts = cache(async (businessId: string) => {
       })),
     })),
   }));
-});
+};
 
-export const getCategories = cache(async (businessId: string) => {
+export const getCategories = async (businessId: string) => {
   return await prisma.category.findMany({
     where: { businessId },
     orderBy: { name: "asc" },
   });
-});
+};
 
 export const createProduct = async (productData: {
   name: string;
@@ -114,7 +149,7 @@ export const createProduct = async (productData: {
     })),
   };
 
-  // Invalidate cache for products and business data
+  // Invalidate  for products and business data
   revalidateTag(`products-${productData.businessId}`);
   revalidatePath(`/admin/${productData.businessId}/products`);
 
@@ -195,7 +230,7 @@ export const updateProduct = async (
     })),
   };
 
-  // Invalidate cache for products and business data
+  // Invalidate  for products and business data
   revalidateTag(`products-${updateData.categoryId || "unknown"}`);
   revalidatePath(`/admin/*/products`);
 
@@ -207,7 +242,7 @@ export const deleteProduct = async (productId: string) => {
     where: { id: productId },
   });
 
-  // Invalidate cache for products
+  // Invalidate  for products
   revalidateTag(`products-${result.businessId}`);
   revalidatePath(`/admin/${result.businessId}/products`);
 
@@ -224,7 +259,7 @@ export const createCategory = async (categoryData: {
     data: categoryData,
   });
 
-  // Invalidate cache for categories
+  // Invalidate  for categories
   revalidateTag(`categories-${categoryData.businessId}`);
   revalidatePath(`/admin/${categoryData.businessId}/categories`);
 
@@ -244,7 +279,7 @@ export const updateCategory = async (
     data: categoryData,
   });
 
-  // Invalidate cache for categories
+  // Invalidate  for categories
   revalidateTag(`categories-${result.businessId}`);
   revalidatePath(`/admin/${result.businessId}/categories`);
 
@@ -256,14 +291,14 @@ export const deleteCategory = async (categoryId: string) => {
     where: { id: categoryId },
   });
 
-  // Invalidate cache for categories
+  // Invalidate  for categories
   revalidateTag(`categories-${result.businessId}`);
   revalidatePath(`/admin/${result.businessId}/categories`);
 
   return result;
 };
 
-export const getOrders = cache(async (businessId: string) => {
+export const getOrders = async (businessId: string) => {
   const orders = await prisma.order.findMany({
     where: { businessId },
     include: {
@@ -291,9 +326,9 @@ export const getOrders = cache(async (businessId: string) => {
       price: Number(item.price),
     })),
   }));
-});
+};
 
-export const getCustomers = cache(async (businessId: string) => {
+export const getCustomers = async (businessId: string) => {
   try {
     // Import clerkClient here to avoid issues with Next.js SSR
     const { clerkClient } = await import("@clerk/nextjs/server");
@@ -373,8 +408,8 @@ export const getCustomers = cache(async (businessId: string) => {
         console.error(`Failed to fetch user ${userId}:`, error);
         // Return a placeholder for users we can't fetch
         return {
-          id: userId,
-          email: `${userId.slice(0, 8)}...@unknown.com`,
+          id: String(userId),
+          email: `${String(userId).slice(0, 8)}...@unknown.com`,
           firstName: "Unknown",
           lastName: "User",
           imageUrl: null,
@@ -413,4 +448,4 @@ export const getCustomers = cache(async (businessId: string) => {
     console.error("Error fetching customers:", error);
     return [];
   }
-});
+};

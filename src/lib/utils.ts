@@ -257,3 +257,84 @@ export function generateSKU(productName: string): string {
   // Combine: clean name + random number
   return `${cleanName}-${randomNum}`;
 }
+
+// Brand color utilities
+export function getBrandColorClass(
+  brandColor: string | null | undefined
+): string {
+  const colorMap: Record<string, string> = {
+    blue: "bg-blue-400",
+    red: "bg-red-400",
+    green: "bg-green-400",
+    yellow: "bg-yellow-400",
+    purple: "bg-purple-400",
+    pink: "bg-pink-400",
+    indigo: "bg-indigo-400",
+    gray: "bg-gray-400",
+    orange: "bg-orange-400",
+    teal: "bg-teal-400",
+    emerald: "bg-emerald-400",
+    cyan: "bg-cyan-400",
+    lime: "bg-lime-400",
+    violet: "bg-violet-400",
+    fuchsia: "bg-fuchsia-400",
+    rose: "bg-rose-400",
+    slate: "bg-slate-400",
+    zinc: "bg-zinc-400",
+    neutral: "bg-neutral-400",
+    stone: "bg-stone-400",
+  };
+
+  return colorMap[brandColor || "blue"] || colorMap["blue"];
+}
+
+export function getBrandBackgroundClass(
+  brandColor: string | null | undefined
+): string {
+  const bgMap: Record<string, string> = {
+    blue: "bg-gradient-to-b from-white to-blue-50 min-h-screen",
+    red: "bg-gradient-to-b from-white to-red-50 min-h-screen",
+    green: "bg-gradient-to-b from-white to-green-50 min-h-screen",
+    yellow: "bg-gradient-to-b from-white to-yellow-50 min-h-screen",
+    purple: "bg-gradient-to-b from-white to-purple-50 min-h-screen",
+    pink: "bg-gradient-to-b from-white to-pink-50 min-h-screen",
+    indigo: "bg-gradient-to-b from-white to-indigo-50 min-h-screen",
+    gray: "bg-gradient-to-b from-white to-gray-50 min-h-screen",
+    orange: "bg-gradient-to-b from-white to-orange-50 min-h-screen",
+    teal: "bg-gradient-to-b from-white to-teal-50 min-h-screen",
+    emerald: "bg-gradient-to-b from-white to-emerald-50 min-h-screen",
+    cyan: "bg-gradient-to-b from-white to-cyan-50 min-h-screen",
+    lime: "bg-gradient-to-b from-white to-lime-50 min-h-screen",
+    violet: "bg-gradient-to-b from-white to-violet-50 min-h-screen",
+    fuchsia: "bg-gradient-to-b from-white to-fuchsia-50 min-h-screen",
+    rose: "bg-gradient-to-b from-white to-rose-50 min-h-screen",
+    slate: "bg-gradient-to-b from-white to-slate-50 min-h-screen",
+    zinc: "bg-gradient-to-b from-white to-zinc-50 min-h-screen",
+    neutral: "bg-gradient-to-b from-white to-neutral-50 min-h-screen",
+    stone: "bg-gradient-to-b from-white to-stone-50 min-h-screen",
+  };
+
+  return bgMap[brandColor || "blue"] || bgMap["blue"];
+}
+
+// Price formatting utility
+export function formatPrice(
+  price: number | string | { toString(): string },
+  currency: string = "SGD",
+  locale: string = "en-SG"
+): string {
+  const numericPrice =
+    typeof price === "number" ? price : Number(price.toString());
+
+  if (isNaN(numericPrice)) {
+    return "Price unavailable";
+  }
+
+  // Format using Intl.NumberFormat for proper currency display
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(numericPrice);
+}
