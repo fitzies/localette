@@ -23,6 +23,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { hasBusiness } from "@/lib/functions";
+import { Flower } from "lucide-react";
 
 // Navigation links array to be used in both desktop and mobile menus
 const navigationLinks = [
@@ -118,7 +119,7 @@ export default function Nav({ mode = "home" }: NavProps) {
         <div className="flex h-16 justify-between items-center">
           {/* Logo */}
           <a href="#" className="text-primary hover:text-primary/90">
-            <img src="/logo.png" alt="Localette Logo" className="h-8 w-auto" />
+            <Flower />
           </a>
           {/* User icon */}
           <div className="flex items-center">
@@ -154,11 +155,7 @@ export default function Nav({ mode = "home" }: NavProps) {
           {/* Main nav */}
           <div className="flex items-center gap-6">
             <a href="#" className="text-primary hover:text-primary/90">
-              <img
-                src="/logo.png"
-                alt="Localette Logo"
-                className="h-8 w-auto"
-              />
+              <Flower />
             </a>
             {/* Navigation menu */}
             <NavigationMenu className="h-full *:h-full max-md:hidden">

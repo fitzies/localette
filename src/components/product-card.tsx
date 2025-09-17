@@ -8,7 +8,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product, brandColor }: ProductCardProps) {
   return (
-    <div className="flex flex-col gap-3" key={product.id}>
+    <div className="flex flex-col gap-3 cursor-pointer" key={product.id}>
       <div className="aspect-square overflow-hidden rounded-lg">
         {product.imageUrl ? (
           <img
